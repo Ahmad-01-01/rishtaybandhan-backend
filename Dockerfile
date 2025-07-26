@@ -6,7 +6,7 @@ COPY . .
 
 # Copy .env and service account key
 COPY .env .
-COPY serviceAccountKey.json .
+COPY rishtaybandhan-firebase-firebase-adminsdk-fbsvc-77c0ba15c7.json .
 
 FROM node:18-alpine
 WORKDIR /workspace
