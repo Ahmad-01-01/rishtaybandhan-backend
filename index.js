@@ -83,10 +83,22 @@ app.post(
         uploadPromises.push(task);
       }
 
-      // Gallery (optional, 0–4 allowed)
-      for (let i = 0; i < 4; i++) {
-        if (fileMap[`gallery${i}`]) {
-          const file = fileMap[`gallery${i}`][0];
+      // ...other code continues...
+
+      // Gallery (optional, N allowed, N = up to 4 in this API)
+      const galleryUploadTasks = [];
+      const galleryIndices = Object.keys(fileMap)
+        .filter((k) => k.startsWith("gallery"))
+        .map((k) => parseInt(k.replace("gallery", ""), 10))
+        .filter((i) => !isNaN(i))
+        .sort((a, b) => a - b);
+
+      pictures.gallery = []; // Initialize as empty array
+
+      for (const i of galleryIndices) {
+        const files = fileMap[`gallery${i}`];
+        if (files && files.length > 0) {
+          const file = files[0];
           const name = `${uid}_gallery_${i}.jpg`;
           const task = bucket
             .file(`user_images/${uid}/${name}`)
@@ -102,13 +114,13 @@ app.post(
               })
             )
             .then(([url]) => {
-              pictures.gallery[i] = url;
+              pictures.gallery.push(url);
             });
-          uploadPromises.push(task);
-        } else {
-          pictures.gallery[i] = "";
+          galleryUploadTasks.push(task);
         }
       }
+
+      uploadPromises.push(...galleryUploadTasks);
 
       // Profile Pic (optional)
       if (fileMap["profilePic"]) {
