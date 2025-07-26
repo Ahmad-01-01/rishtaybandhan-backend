@@ -7,15 +7,11 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const { v4: uuidv4 } = require("uuid");
 
-const keyPath =
-  "./rishtaybandhan-firebase-firebase-adminsdk-fbsvc-77c0ba15c7.json" ||
-  process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 const serviceAccount = require(keyPath);
 
 // Access .env variables!
-const storageBucket =
-  "gs://rishtaybandhan-firebase.firebasestorage.app" ||
-  process.env.STORAGE_BUCKET;
+const storageBucket = process.env.STORAGE_BUCKET;
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
