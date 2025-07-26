@@ -1,3 +1,4 @@
+// Always at the top!
 require("dotenv").config();
 
 const express = require("express");
@@ -16,6 +17,9 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket,
 });
+const app = express();
+app.use(cors());
+
 const bucket = admin.storage().bucket();
 
 // Multer settings: Store files in memory (not on disk)
