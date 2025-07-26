@@ -7,8 +7,7 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const { v4: uuidv4 } = require("uuid");
 
-const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-const serviceAccount = require(keyPath);
+const serviceAccount = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 // Access .env variables!
 const storageBucket = process.env.STORAGE_BUCKET;
