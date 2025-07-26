@@ -150,7 +150,6 @@ app.post(
     }
   }
 );
-// healthcheck
 app.get("/", (req, res) => res.send("Photo upload API running"));
 
 const PORT = process.env.PORT || 8080;
