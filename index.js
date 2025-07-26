@@ -1,22 +1,21 @@
-// index.js
+require("dotenv").config();
+
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const { v4: uuidv4 } = require("uuid");
-const path = require("path");
 
-const app = express();
-app.use(cors());
+const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const serviceAccount = require(keyPath);
 
-// Initialize firebase-admin with service account json
-const serviceAccount = require("./rishtaybandhan-firebase-firebase-adminsdk-fbsvc-77c0ba15c7.json"); // Download from your Firebase project settings
+// Access .env variables!
+const storageBucket = process.env.STORAGE_BUCKET;
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "gs://rishtaybandhan-firebase.firebasestorage.app", // e.g. rbapp.appspot.com
+  storageBucket,
 });
-
 const bucket = admin.storage().bucket();
 
 // Multer settings: Store files in memory (not on disk)
