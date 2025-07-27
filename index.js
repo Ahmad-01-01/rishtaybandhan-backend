@@ -161,6 +161,106 @@ app.post(
     }
   }
 );
+
+// endpoint POST /api/delete-user-images/:uid
+app.post("/api/delete-user-images/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+    if (!uid) {
+      return res.status(400).json({ error: "No uid supplied" });
+    }
+    // List all files in GCS bucket under user_images/UID/
+    const [files] = await bucket.getFiles({ prefix: `user_images/${uid}/` });
+    const deletePromises = files.map((file) => file.delete());
+    await Promise.all(deletePromises);
+    return res.json({ success: true, deleted: files.length });
+  } catch (err) {
+    console.error("Failed to delete user images:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.post(
+  "/api/upload-profile-pic",
+  upload.single("profilePic"),
+  async (req, res) => {
+    try {
+      const { uid } = req.body;
+      if (!uid) return res.status(400).json({ error: "No uid supplied" });
+
+      // Ensure a file is uploaded
+      if (!req.file) {
+        return res.status(400).json({ error: "No profilePic file uploaded." });
+      }
+
+      const file = req.file;
+      const name = `${uid}_profilePic.jpg`;
+      const gcsPath = `user_images/${uid}/${name}`;
+      const fileRef = bucket.file(gcsPath);
+
+      // Upload the file to GCS
+      await fileRef.save(file.buffer, {
+        resumable: false,
+        contentType: file.mimetype,
+        metadata: { firebaseStorageDownloadTokens: uuidv4() },
+      });
+
+      // Generate a (very long/lifetime) signed URL
+      const [signedUrl] = await fileRef.getSignedUrl({
+        action: "read",
+        expires: "03-01-2500",
+      });
+
+      // Update only profilePic in Firestore
+      await admin.firestore().collection("users").doc(uid).update({
+        "pictures.profilePic": signedUrl,
+      });
+
+      return res.json({ success: true, profilePic: signedUrl });
+    } catch (err) {
+      console.error("Failed to upload profile pic:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+/**
+ * /api/list-signed-urls/:uid
+ * Lists all images in user_images/:uid and generates never-expiring signed URLs.
+ * Returns { files: [ { name, url }, ... ] }
+ */
+app.get("/api/list-signed-urls/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+    if (!uid) return res.status(400).json({ error: "No uid supplied" });
+
+    // List all files in user_images/:uid/
+    const [files] = await bucket.getFiles({
+      prefix: `user_images/${uid}/`,
+    });
+
+    // Ignore "directory" entries (Firebase returns objects for both folders & files)
+    const imageFiles = files.filter((f) => !f.name.endsWith("/"));
+
+    // Generate signed URLs for each file
+    const urlPromises = imageFiles.map(async (file) => {
+      const [url] = await file.getSignedUrl({
+        action: "read",
+        expires: "03-01-2500", // Never expires in practical sense
+      });
+      return {
+        name: file.name.split("/").pop(),
+        url,
+      };
+    });
+
+    const urls = await Promise.all(urlPromises);
+
+    return res.json({ files: urls });
+  } catch (err) {
+    console.error("Failed to list or sign URLs:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/", (req, res) => res.send("Photo upload API running"));
 
 const PORT = process.env.PORT || 8080;
