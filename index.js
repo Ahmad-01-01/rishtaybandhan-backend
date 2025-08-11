@@ -261,6 +261,81 @@ app.get("/api/list-signed-urls/:uid", async (req, res) => {
   }
 });
 
+app.post(
+  "/api/modify-gallery-pictures",
+  upload.fields([
+    { name: "gallery0", maxCount: 1 },
+    { name: "gallery1", maxCount: 1 },
+    { name: "gallery2", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const uid = req.body.uid;
+      if (!uid) return res.status(400).json({ error: "No uid supplied" });
+
+      // For each slot, either receive a file, or a url, or leave blank (to remove)
+      let galleryUrls = [];
+
+      for (let i = 0; i < 3; i++) {
+        let urlField = req.body[`gallery${i}_url`];
+        let fileField = req.files && req.files[`gallery${i}`];
+
+        if (fileField && fileField.length > 0) {
+          // Upload the new file to GCS
+          const file = fileField[0];
+          const name = `${uid}_gallery_${i}.jpg`;
+          const task = bucket
+            .file(`user_images/${uid}/${name}`)
+            .save(file.buffer, {
+              resumable: false,
+              contentType: file.mimetype,
+              metadata: { firebaseStorageDownloadTokens: uuidv4() },
+            })
+            .then(() =>
+              bucket.file(`user_images/${uid}/${name}`).getSignedUrl({
+                action: "read",
+                expires: "03-01-2500",
+              })
+            )
+            .then(([url]) => url);
+          galleryUrls.push(task); // Promise
+        } else if (
+          urlField &&
+          typeof urlField === "string" &&
+          urlField.trim()
+        ) {
+          galleryUrls.push(urlField.trim()); // Use the old image URL
+        } else {
+          galleryUrls.push(null); // Deleted
+        }
+      }
+
+      // resolve all upload promises in place
+      for (let i = 0; i < 3; i++) {
+        if (
+          typeof galleryUrls[i] === "object" &&
+          typeof galleryUrls[i].then === "function"
+        ) {
+          galleryUrls[i] = await galleryUrls[i];
+        }
+      }
+
+      // Remove trailing empty/nulls if you always want a short array
+      // Or keep as 3 elements if you want fixed length
+
+      // Write to Firestore
+      await admin.firestore().collection("users").doc(uid).update({
+        "pictures.gallery": galleryUrls,
+      });
+
+      return res.json({ success: true, gallery: galleryUrls });
+    } catch (err) {
+      console.error("Failed to modify gallery pictures:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 app.get("/", (req, res) => res.send("Photo upload API running"));
 
 const PORT = process.env.PORT || 8080;
