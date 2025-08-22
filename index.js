@@ -227,7 +227,7 @@ app.post(
       const hasFace = await detectFaceByBuffer(req.file.buffer);
       if (!hasFace) {
         return res
-          .status(400)
+          .status(401)
           .json({ error: "Profile picture must clearly show your face." });
       }
       // --- END FACE DETECTION ---
@@ -324,11 +324,9 @@ app.post(
           // ---- FACE DETECTION CHECK ----
           const hasFace = await detectFaceByBuffer(file.buffer);
           if (!hasFace) {
-            return res
-              .status(400)
-              .json({
-                error: `Gallery photo ${i + 1} must contain a clear face.`,
-              });
+            return res.status(401).json({
+              error: `Gallery photo ${i + 1} must contain a clear face.`,
+            });
           }
           // ---- END CHECK ----
 
