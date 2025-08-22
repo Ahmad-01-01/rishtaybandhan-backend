@@ -7,7 +7,9 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const { v4: uuidv4 } = require("uuid");
 
-const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+const { detectFaceByBuffer } = require("./utils/faceDetector"); // Adjust path as needed
+
+const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
 // Access .env variables!
 const storageBucket = process.env.STORAGE_BUCKET;
@@ -51,6 +53,36 @@ app.post(
       if (!fileMap["camera"]) {
         return res.status(400).json({ error: "Camera photo is required." });
       }
+
+      // ----------- 👇 ADD THIS SECTION: FACE DETECTION 👇 -----------
+      // Prepare list of fields to check for face
+      const checkFields = [
+        { field: "camera", required: true },
+        // Add others you want to check - can be all or some
+        { field: "profilePic", required: false },
+        { field: "gallery0", required: false },
+        { field: "gallery1", required: false },
+        { field: "gallery2", required: false },
+        { field: "gallery3", required: false },
+      ];
+      for (const { field, required } of checkFields) {
+        if (fileMap[field]) {
+          // Might be an array (multer)
+          for (const file of fileMap[field]) {
+            const hasFace = await detectFaceByBuffer(file.buffer);
+            if (!hasFace) {
+              return res.status(401).json({
+                error: `Uploaded "${field}" image must contain a clear face.`,
+              });
+            }
+          }
+        } else if (required) {
+          return res
+            .status(400)
+            .json({ error: `Missing required photo: ${field}` });
+        }
+      }
+      // ----------- 👆 END FACE DETECTION SECTION 👆 -----------
 
       const pictures = {
         camera: "",
