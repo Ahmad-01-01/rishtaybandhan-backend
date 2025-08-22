@@ -210,6 +210,7 @@ app.post("/api/delete-user-images/:uid", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 app.post(
   "/api/upload-profile-pic",
   upload.single("profilePic"),
@@ -222,7 +223,14 @@ app.post(
       if (!req.file) {
         return res.status(400).json({ error: "No profilePic file uploaded." });
       }
-
+      // --- FACE DETECTION BEFORE UPLOAD ---
+      const hasFace = await detectFaceByBuffer(req.file.buffer);
+      if (!hasFace) {
+        return res
+          .status(400)
+          .json({ error: "Profile picture must clearly show your face." });
+      }
+      // --- END FACE DETECTION ---
       const file = req.file;
       const name = `${uid}_profilePic.jpg`;
       const gcsPath = `user_images/${uid}/${name}`;
@@ -312,6 +320,18 @@ app.post(
         if (fileField && fileField.length > 0) {
           // Upload the new file to GCS
           const file = fileField[0];
+
+          // ---- FACE DETECTION CHECK ----
+          const hasFace = await detectFaceByBuffer(file.buffer);
+          if (!hasFace) {
+            return res
+              .status(400)
+              .json({
+                error: `Gallery photo ${i + 1} must contain a clear face.`,
+              });
+          }
+          // ---- END CHECK ----
+
           const name = `${uid}_gallery_${i}.jpg`;
           const task = bucket
             .file(`user_images/${uid}/${name}`)
