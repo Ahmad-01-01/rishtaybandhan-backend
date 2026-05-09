@@ -1,10 +1,11 @@
 {
   "name": "rishtaybandhan-backend",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Rishtay Bandhan API — Auth, Email, Images",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,8 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "firebase-admin": "^13.4.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.0",
+    "uuid": "^11.1.0"
   }
 }
