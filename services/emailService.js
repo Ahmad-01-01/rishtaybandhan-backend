@@ -58,7 +58,7 @@ function buildEmailTemplate({ title, body }) {
             <td style="padding: 0 32px 32px;">
               <div style="border-top: 1px solid #f0e4ea; padding-top: 20px; text-align: center;">
                 <p style="font-size: 12px; color: #c4a0b3; margin: 0; line-height: 1.6;">
-                  &copy; 2025 Rishtay Bandhan. All rights reserved.<br/>
+                  &copy; 2026 Rishtay Bandhan. All rights reserved.<br/>
                   This is an automated message, please do not reply directly.
                 </p>
                 <div style="margin-top: 12px;">
