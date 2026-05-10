@@ -28,13 +28,15 @@ router.post("/send-otp", async (req, res) => {
       title: "Verify Your Email",
       body: `
         <p style="font-size: 15px; color: #555; line-height: 1.6;">
-          Use the code below to verify your email address for <strong>${email}</strong>.
+          Use the code below to verify your email address for <strong style="color: #2C2C2C;">${email}</strong>.
         </p>
-        <div style="font-size: 36px; font-weight: bold; letter-spacing: 12px; text-align: center; color: #c0392b; padding: 24px 0; background-color: #fdf2f2; border-radius: 8px; margin: 20px 0;">
-          ${otp}
+        <div style="text-align: center; margin: 24px 0;">
+          <div style="display: inline-block; background: linear-gradient(135deg, #FFF3F7, #FFE0E9); border: 2px solid #FE7AAC; border-radius: 12px; padding: 20px 36px;">
+            <span style="font-size: 36px; font-weight: 800; letter-spacing: 14px; color: #FE7AAC; font-family: 'Courier New', monospace;">${otp}</span>
+          </div>
         </div>
-        <p style="font-size: 13px; color: #999; line-height: 1.5;">
-          This code expires in <strong>10 minutes</strong>. Do not share it with anyone.
+        <p style="font-size: 13px; color: #999; line-height: 1.5; text-align: center;">
+          This code expires in <strong>10 minutes</strong>.<br/>Do not share it with anyone.
         </p>
       `,
     });
@@ -106,15 +108,15 @@ router.post("/reset-password", async (req, res) => {
       title: "Reset Your Password",
       body: `
         <p style="font-size: 15px; color: #555; line-height: 1.6;">
-          We received a request to reset the password for your account associated with <strong>${email}</strong>.
+          We received a request to reset the password for your account associated with <strong style="color: #2C2C2C;">${email}</strong>.
         </p>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${resetLink}" style="background-color: #c0392b; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">
+          <a href="${resetLink}" style="background: linear-gradient(135deg, #FE7AAC, #FF9AC2); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 50px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 4px 16px rgba(254, 122, 172, 0.35); letter-spacing: 0.5px;">
             Reset My Password
           </a>
         </div>
-        <p style="font-size: 13px; color: #999; line-height: 1.5;">
-          This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password will remain unchanged.
+        <p style="font-size: 13px; color: #999; line-height: 1.5; text-align: center;">
+          This link will expire in <strong>1 hour</strong>. If you didn't request<br/>a password reset, you can safely ignore this email.
         </p>
       `,
     });
