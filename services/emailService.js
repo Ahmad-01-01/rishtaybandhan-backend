@@ -18,12 +18,8 @@ const transporter = nodemailer.createTransport({
 // Text dark:    #2C2C2C
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Inline SVG logo (intertwined hearts — matches app_logo.png)
-const LOGO_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="80" height="80">
-  <path d="M60 25 C45 10, 20 10, 15 30 C10 50, 30 65, 60 95 C90 65, 110 50, 105 30 C100 10, 75 10, 60 25Z" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.9"/>
-  <path d="M60 35 C50 20, 30 20, 25 35 C20 50, 35 60, 60 85 C85 60, 100 50, 95 35 C90 20, 70 20, 60 35Z" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6"/>
-</svg>`;
+// Hosted logo URL (app_logo.png uploaded to Firebase Storage)
+const LOGO_URL = 'https://storage.googleapis.com/rishtaybandhan-firebase.firebasestorage.app/branding/app_logo.png';
 
 function buildEmailTemplate({ title, body }) {
   return `
@@ -42,10 +38,8 @@ function buildEmailTemplate({ title, body }) {
           <!-- Header with gradient -->
           <tr>
             <td style="background: linear-gradient(135deg, #FE7AAC 0%, #FF9AC2 50%, #FE7AAC 100%); padding: 40px 24px 32px; text-align: center;">
-              <!-- Logo circle -->
-              <div style="width: 72px; height: 72px; background-color: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 16px; display: inline-block; line-height: 72px;">
-                ${LOGO_SVG}
-              </div>
+              <!-- App Logo -->
+              <img src="${LOGO_URL}" alt="Rishtay Bandhan" width="80" height="80" style="display: block; margin: 0 auto 16px; border-radius: 16px;" />
               <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Rishtay Bandhan</h1>
               <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-weight: 400; letter-spacing: 0.5px;">Finding your perfect match</p>
             </td>
