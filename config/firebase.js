@@ -5,7 +5,12 @@ const serviceAccount = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 const storageBucket = process.env.STORAGE_BUCKET;
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  // Use an explicit service-account key when provided (local / existing prod);
+  // otherwise fall back to the runtime default service account, which is what
+  // Cloud Run provides (used by the dev deployment — no key file needed).
+  credential: serviceAccount
+    ? admin.credential.cert(serviceAccount)
+    : admin.credential.applicationDefault(),
   storageBucket,
 });
 

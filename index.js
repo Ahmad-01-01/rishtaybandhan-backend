@@ -8,6 +8,7 @@ require("./config/firebase");
 // Import routes
 const authRoutes = require("./routes/auth");
 const imageRoutes = require("./routes/images");
+const notifyRoutes = require("./routes/notify");
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.use(express.json());
 // ─── ROUTES ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);     // /api/auth/send-otp, /api/auth/verify-otp, /api/auth/reset-password
 app.use("/api", imageRoutes);         // /api/upload-pictures, /api/upload-profile-pic, etc.
+app.use("/api", notifyRoutes);        // /api/notify (push on like / match / message)
 
 // Health check
 app.get("/", (req, res) => res.send("Rishtay Bandhan API running"));
