@@ -9,6 +9,21 @@ router.post("/send-otp", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
+    // Reject addresses that already have an account. Only the server can
+    // check this: Firestore rules require sign-in, and the client-side
+    // fetchSignInMethodsForEmail API is deprecated. Doing it here also means
+    // the user is told BEFORE waiting on a verification code.
+    try {
+      await auth.getUserByEmail(email);
+      return res.status(409).json({
+        error: "email-exists",
+        message: "An account with this email already exists. Please sign in.",
+      });
+    } catch (err) {
+      if (err.code !== "auth/user-not-found") throw err;
+      // Not found is the happy path for signup — carry on.
+    }
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
