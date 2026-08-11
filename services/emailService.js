@@ -27,8 +27,16 @@ const PINK_SOFT = "#FFEAF1";
 const INK = "#1A1A1A";
 const MUTED = "#6B6B6B";
 
-// Hosted logo URL (app_logo.png uploaded to Firebase Storage)
-const LOGO_URL = 'https://storage.googleapis.com/rishtaybandhan-firebase.firebasestorage.app/branding/app_logo.png';
+// Hosted logo, generated from the app's own assets/images/app_logo_rounded.png
+// (the mark used on the splash screen and in the nav bar) at 240px, which is 3x
+// the 80px it renders at.
+//
+// The filename is versioned on purpose. Mail clients cache images by URL for a
+// long time, so overwriting the old branding/app_logo.png would have kept
+// serving the pre-revamp logo to anyone who had already received an email.
+// Bump the year suffix again if the mark changes.
+const LOGO_URL =
+  'https://storage.googleapis.com/rishtaybandhan-firebase.firebasestorage.app/branding/app_logo_2026.png';
 
 function buildEmailTemplate({ title, body }) {
   return `
