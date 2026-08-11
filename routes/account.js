@@ -31,17 +31,36 @@ const PHOTO_PREFIXES = ["users/", "user_images/"];
 // it meant the default bucket was never cleaned — caught by the end-to-end
 // test on prod, where the legacy photo went and the two default-bucket photos
 // stayed behind.
-function bucketNames() {
-  const projectId =
+function projectId() {
+  // Cloud Run does not reliably export GOOGLE_CLOUD_PROJECT, and
+  // admin.app().options.projectId is only populated when it was passed to
+  // initializeApp (it is not here). The service-account key file is the one
+  // source that is always present on prod.
+  const fromEnv =
     process.env.GOOGLE_CLOUD_PROJECT ||
-    admin.app().options.projectId ||
-    "";
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT ||
+    admin.app().options.projectId;
+  if (fromEnv) return fromEnv;
+  try {
+    const fs = require("fs");
+    const key = JSON.parse(
+      fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8")
+    );
+    return key.project_id || "";
+  } catch (err) {
+    return "";
+  }
+}
+
+function bucketNames() {
+  const project = projectId();
   const names = [
     process.env.STORAGE_BUCKET,
     process.env.LEGACY_STORAGE_BUCKET || "rishtaybandhan-storage",
-    projectId ? `${projectId}.firebasestorage.app` : null,
+    project ? `${project}.firebasestorage.app` : null,
     // Pre-2024 Firebase default naming, harmless if it does not exist.
-    projectId ? `${projectId}.appspot.com` : null,
+    project ? `${project}.appspot.com` : null,
   ].filter(Boolean);
   return [...new Set(names)];
 }
@@ -107,8 +126,11 @@ router.post("/delete-account", async (req, res) => {
     }
 
     // Photos: every prefix, in every bucket. A bucket that does not exist in
-    // this project simply errors and is skipped.
-    for (const name of bucketNames()) {
+    // this project simply errors and is skipped. The list is echoed back in
+    // the response so a misconfigured bucket is visible from the outside
+    // instead of silently deleting nothing.
+    report.bucketsTried = bucketNames();
+    for (const name of report.bucketsTried) {
       const bucket = admin.storage().bucket(name);
       for (const prefix of PHOTO_PREFIXES) {
         try {
