@@ -1,7 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const { db, auth } = require("../config/firebase");
-const { sendEmail } = require("../services/emailService");
+const {
+  sendEmail,
+  PINK,
+  PINK_DARK,
+  PINK_SOFT,
+  INK,
+  MUTED,
+} = require("../services/emailService");
 
 // ─── SEND OTP ────────────────────────────────────────────────────────────────
 router.post("/send-otp", async (req, res) => {
@@ -39,21 +46,26 @@ router.post("/send-otp", async (req, res) => {
     // Send branded email
     await sendEmail({
       to: email,
-      subject: "Your Rishtay Bandhan Verification Code",
-      title: "Verify Your Email",
+      subject: `${otp} is your Rishtay Bandhan verification code`,
+      title: "Verify your email",
       body: `
-        <p style="font-size: 15px; color: #555; line-height: 1.6;">
-          Use the code below to verify your email address for <strong style="color: #2C2C2C;">${email}</strong>.
+        <p style="font-size: 15px; color: ${MUTED}; line-height: 1.6;">
+          Use the code below to verify <strong style="color: ${INK};">${email}</strong>.
         </p>
         <div style="text-align: center; margin: 24px 0;">
-          <div style="display: inline-block; background: linear-gradient(135deg, #FFF3F7, #FFE0E9); border: 2px solid #FE7AAC; border-radius: 12px; padding: 20px 36px;">
-            <span style="font-size: 36px; font-weight: 800; letter-spacing: 14px; color: #FE7AAC; font-family: 'Courier New', monospace;">${otp}</span>
+          <div style="display: inline-block; background-color: ${PINK_SOFT}; border: 2px solid ${PINK}; border-radius: 12px; padding: 20px 36px;">
+            <span style="font-size: 36px; font-weight: 800; letter-spacing: 12px; color: ${PINK_DARK}; font-family: 'Courier New', monospace;">${otp}</span>
           </div>
         </div>
-        <p style="font-size: 13px; color: #999; line-height: 1.5; text-align: center;">
+        <p style="font-size: 13px; color: ${MUTED}; line-height: 1.5; text-align: center;">
           This code expires in <strong>10 minutes</strong>.<br/>Do not share it with anyone.
         </p>
       `,
+      text:
+        `Your Rishtay Bandhan verification code is ${otp}.\n\n` +
+        `It verifies the email address ${email} and expires in 10 minutes.\n` +
+        `Do not share this code with anyone.\n\n` +
+        `If you did not request it, you can ignore this email.`,
     });
 
     return res.json({ success: true, message: "OTP sent successfully" });
@@ -119,21 +131,30 @@ router.post("/reset-password", async (req, res) => {
     // Send branded email
     await sendEmail({
       to: email,
-      subject: "Reset your password - Rishtay Bandhan",
-      title: "Reset Your Password",
+      subject: "Reset your Rishtay Bandhan password",
+      title: "Reset your password",
       body: `
-        <p style="font-size: 15px; color: #555; line-height: 1.6;">
-          We received a request to reset the password for your account associated with <strong style="color: #2C2C2C;">${email}</strong>.
+        <p style="font-size: 15px; color: ${MUTED}; line-height: 1.6;">
+          We received a request to reset the password for <strong style="color: ${INK};">${email}</strong>.
         </p>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${resetLink}" style="background: linear-gradient(135deg, #FE7AAC, #FF9AC2); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 50px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 4px 16px rgba(254, 122, 172, 0.35); letter-spacing: 0.5px;">
-            Reset My Password
+          <a href="${resetLink}" bgcolor="${PINK}" style="background: linear-gradient(135deg, ${PINK}, ${PINK_DARK}); background-color: ${PINK}; color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 50px; font-size: 16px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">
+            Reset my password
           </a>
         </div>
-        <p style="font-size: 13px; color: #999; line-height: 1.5; text-align: center;">
-          This link will expire in <strong>1 hour</strong>. If you didn't request<br/>a password reset, you can safely ignore this email.
+        <p style="font-size: 13px; color: ${MUTED}; line-height: 1.5; text-align: center;">
+          This link expires in <strong>1 hour</strong>. If you didn't ask for it,<br/>you can safely ignore this email — nothing will change.
+        </p>
+        <p style="font-size: 12px; color: ${MUTED}; line-height: 1.5; word-break: break-all;">
+          Button not working? Paste this into your browser:<br/>
+          <a href="${resetLink}" style="color: ${PINK};">${resetLink}</a>
         </p>
       `,
+      text:
+        `We received a request to reset the password for ${email}.\n\n` +
+        `Open this link to choose a new password (expires in 1 hour):\n` +
+        `${resetLink}\n\n` +
+        `If you didn't ask for this, ignore this email and nothing will change.`,
     });
 
     return res.json({ success: true, message: "Password reset email sent" });

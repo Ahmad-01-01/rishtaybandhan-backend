@@ -12,11 +12,20 @@ const transporter = nodemailer.createTransport({
 });
 
 // ─── BRAND COLORS ───────────────────────────────────────────────────────────
-// Primary pink: #FE7AAC
-// Dark pink:    #E8609A
-// Light pink:   #FFF3F7
-// Text dark:    #2C2C2C
+// Kept in step with lib/core/rb_design.dart in the app. The old pale pink
+// (#FE7AAC) predates the revamp and no longer matches anything the member
+// sees on screen.
+// Primary pink: #ED1B6F
+// Dark pink:    #C91560
+// Soft pink:    #FFEAF1
+// Text dark:    #1A1A1A
+// Muted text:   #6B6B6B
 // ─────────────────────────────────────────────────────────────────────────────
+const PINK = "#ED1B6F";
+const PINK_DARK = "#C91560";
+const PINK_SOFT = "#FFEAF1";
+const INK = "#1A1A1A";
+const MUTED = "#6B6B6B";
 
 // Hosted logo URL (app_logo.png uploaded to Firebase Storage)
 const LOGO_URL = 'https://storage.googleapis.com/rishtaybandhan-firebase.firebasestorage.app/branding/app_logo.png';
@@ -33,14 +42,16 @@ function buildEmailTemplate({ title, body }) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f4f6; padding: 32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width: 520px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(254, 122, 172, 0.12);">
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width: 520px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(237, 27, 111, 0.12);">
 
-          <!-- Header with gradient -->
+          <!-- Header. bgcolor + background-color repeat the pink because
+               several clients (older Outlook, some Gmail views) drop the
+               gradient and would otherwise render white-on-white. -->
           <tr>
-            <td style="background: linear-gradient(135deg, #FE7AAC 0%, #FF9AC2 50%, #FE7AAC 100%); padding: 40px 24px 32px; text-align: center;">
+            <td bgcolor="${PINK}" style="background: linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%); background-color: ${PINK}; padding: 40px 24px 32px; text-align: center;">
               <!-- App Logo -->
               <img src="${LOGO_URL}" alt="Rishtay Bandhan" width="80" height="80" style="display: block; margin: 0 auto 16px; border-radius: 16px;" />
-              <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Rishtay Bandhan</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">Rishtay Bandhan</h1>
               <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-weight: 400; letter-spacing: 0.5px;">Finding your perfect match</p>
             </td>
           </tr>
@@ -48,7 +59,7 @@ function buildEmailTemplate({ title, body }) {
           <!-- Content -->
           <tr>
             <td style="padding: 36px 32px 16px;">
-              <h2 style="color: #2C2C2C; font-size: 22px; margin: 0 0 20px 0; font-weight: 700;">${title}</h2>
+              <h2 style="color: ${INK}; font-size: 22px; margin: 0 0 20px 0; font-weight: 700;">${title}</h2>
               ${body}
             </td>
           </tr>
@@ -56,13 +67,13 @@ function buildEmailTemplate({ title, body }) {
           <!-- Footer -->
           <tr>
             <td style="padding: 0 32px 32px;">
-              <div style="border-top: 1px solid #f0e4ea; padding-top: 20px; text-align: center;">
-                <p style="font-size: 12px; color: #c4a0b3; margin: 0; line-height: 1.6;">
+              <div style="border-top: 1px solid #EFE3EA; padding-top: 20px; text-align: center;">
+                <p style="font-size: 12px; color: ${MUTED}; margin: 0; line-height: 1.6;">
                   &copy; 2026 Rishtay Bandhan. All rights reserved.<br/>
                   This is an automated message, please do not reply directly.
                 </p>
                 <div style="margin-top: 12px;">
-                  <a href="https://www.instagram.com/rishtaybandhan/" style="color: #FE7AAC; text-decoration: none; font-size: 12px; font-weight: 500;">Follow us on Instagram</a>
+                  <a href="https://www.instagram.com/rishtaybandhan/" style="color: ${PINK}; text-decoration: none; font-size: 12px; font-weight: 600;">Follow us on Instagram</a>
                 </div>
               </div>
             </td>
@@ -77,14 +88,29 @@ function buildEmailTemplate({ title, body }) {
   `;
 }
 
-async function sendEmail({ to, subject, title, body }) {
+/**
+ * @param {string} text Plain-text alternative. Worth passing on every send:
+ *   an HTML-only message is a well-known spam signal, and a multipart mail
+ *   also renders in clients that block HTML.
+ */
+async function sendEmail({ to, subject, title, body, text }) {
   const mailOptions = {
     from: `Rishtay Bandhan <${GMAIL_EMAIL}>`,
     to,
     subject,
     html: buildEmailTemplate({ title, body }),
+    ...(text ? { text } : {}),
   };
   return transporter.sendMail(mailOptions);
 }
 
-module.exports = { sendEmail };
+module.exports = {
+  sendEmail,
+  // Exported so the templates can be rendered and eyeballed without sending.
+  buildEmailTemplate,
+  PINK,
+  PINK_DARK,
+  PINK_SOFT,
+  INK,
+  MUTED,
+};
