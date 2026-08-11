@@ -24,18 +24,26 @@ const { admin, db, auth } = require("../config/firebase");
 // what every pre-revamp upload used.
 const PHOTO_PREFIXES = ["users/", "user_images/"];
 
-// The Firebase default bucket plus the legacy standalone bucket.
-function buckets() {
-  const list = [admin.storage().bucket()];
-  const legacy = process.env.LEGACY_STORAGE_BUCKET || "rishtaybandhan-storage";
-  if (legacy) {
-    try {
-      list.push(admin.storage().bucket(legacy));
-    } catch (err) {
-      console.error("legacy bucket unavailable:", err.message);
-    }
-  }
-  return list;
+// Every bucket that has ever held a profile photo, named explicitly.
+//
+// Do NOT rely on admin.storage().bucket(): it resolves to STORAGE_BUCKET,
+// which on prod is the LEGACY bucket, not the Firebase default one. Trusting
+// it meant the default bucket was never cleaned — caught by the end-to-end
+// test on prod, where the legacy photo went and the two default-bucket photos
+// stayed behind.
+function bucketNames() {
+  const projectId =
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    admin.app().options.projectId ||
+    "";
+  const names = [
+    process.env.STORAGE_BUCKET,
+    process.env.LEGACY_STORAGE_BUCKET || "rishtaybandhan-storage",
+    projectId ? `${projectId}.firebasestorage.app` : null,
+    // Pre-2024 Firebase default naming, harmless if it does not exist.
+    projectId ? `${projectId}.appspot.com` : null,
+  ].filter(Boolean);
+  return [...new Set(names)];
 }
 
 /** Deletes every doc in a query, plus each doc's `messages` subcollection. */
@@ -98,8 +106,10 @@ router.post("/delete-account", async (req, res) => {
       }
     }
 
-    // Photos: every prefix, in every bucket. Missing prefixes are a no-op.
-    for (const bucket of buckets()) {
+    // Photos: every prefix, in every bucket. A bucket that does not exist in
+    // this project simply errors and is skipped.
+    for (const name of bucketNames()) {
+      const bucket = admin.storage().bucket(name);
       for (const prefix of PHOTO_PREFIXES) {
         try {
           const [files] = await bucket.getFiles({ prefix: `${prefix}${uid}/` });
@@ -108,8 +118,10 @@ router.post("/delete-account", async (req, res) => {
             report.photos += 1;
           }
         } catch (err) {
+          // Expected for buckets that do not exist in this environment; a real
+          // permission problem shows up here too, so it is logged either way.
           console.error(
-            `photo cleanup failed (${bucket.name}/${prefix}${uid}):`,
+            `photo cleanup skipped (${name}/${prefix}${uid}):`,
             err.message
           );
         }
