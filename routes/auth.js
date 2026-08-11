@@ -125,28 +125,28 @@ router.post("/reset-password", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    // Generate reset link via Firebase Admin SDK.
+    // Check the account exists BEFORE asking for a link.
     //
-    // An unknown address returns the same success response as a known one and
-    // simply sends nothing. Answering differently would turn this endpoint
-    // into an email-enumeration oracle: anyone could discover which addresses
-    // have accounts by watching for a 404. The app already shows one message
-    // either way, so this only closes the hole at the API.
-    let resetLink;
+    // For an unknown address Identity Toolkit answers 200 with an empty
+    // oobLink, and the Admin SDK turns that into a bare
+    // "INTERNAL ASSERT FAILED: Unable to create the email action link" with no
+    // distinguishing error code — so it cannot be told apart from a real
+    // outage after the fact. Checking first keeps that ambiguity out of the
+    // handler: past this point, any failure is a genuine one worth a 500.
+    //
+    // The response is deliberately identical whether or not the address is
+    // registered. Answering differently would make this endpoint an
+    // email-enumeration oracle.
     try {
-      resetLink = await auth.generatePasswordResetLink(email);
+      await auth.getUserByEmail(email);
     } catch (err) {
-      // generatePasswordResetLink reports a missing account as
-      // auth/email-not-found, NOT auth/user-not-found — the old check never
-      // matched, so this fell through to a 500.
-      if (
-        err.code === "auth/email-not-found" ||
-        err.code === "auth/user-not-found"
-      ) {
+      if (err.code === "auth/user-not-found") {
         return res.json({ success: true, message: "Password reset email sent" });
       }
       throw err;
     }
+
+    const resetLink = await auth.generatePasswordResetLink(email);
 
     // Send branded email
     await sendEmail({
