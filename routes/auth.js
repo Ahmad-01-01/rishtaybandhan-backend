@@ -125,8 +125,28 @@ router.post("/reset-password", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    // Generate reset link via Firebase Admin SDK
-    const resetLink = await auth.generatePasswordResetLink(email);
+    // Generate reset link via Firebase Admin SDK.
+    //
+    // An unknown address returns the same success response as a known one and
+    // simply sends nothing. Answering differently would turn this endpoint
+    // into an email-enumeration oracle: anyone could discover which addresses
+    // have accounts by watching for a 404. The app already shows one message
+    // either way, so this only closes the hole at the API.
+    let resetLink;
+    try {
+      resetLink = await auth.generatePasswordResetLink(email);
+    } catch (err) {
+      // generatePasswordResetLink reports a missing account as
+      // auth/email-not-found, NOT auth/user-not-found — the old check never
+      // matched, so this fell through to a 500.
+      if (
+        err.code === "auth/email-not-found" ||
+        err.code === "auth/user-not-found"
+      ) {
+        return res.json({ success: true, message: "Password reset email sent" });
+      }
+      throw err;
+    }
 
     // Send branded email
     await sendEmail({
@@ -160,9 +180,6 @@ router.post("/reset-password", async (req, res) => {
     return res.json({ success: true, message: "Password reset email sent" });
   } catch (err) {
     console.error("Error sending reset email:", err);
-    if (err.code === "auth/user-not-found") {
-      return res.status(404).json({ error: "No account found with this email" });
-    }
     return res.status(500).json({ error: "Failed to send reset email" });
   }
 });
