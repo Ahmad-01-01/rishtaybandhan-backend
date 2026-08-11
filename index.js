@@ -9,6 +9,7 @@ require("./config/firebase");
 const authRoutes = require("./routes/auth");
 const imageRoutes = require("./routes/images");
 const notifyRoutes = require("./routes/notify");
+const accountRoutes = require("./routes/account");
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);     // /api/auth/send-otp, /api/auth/verify-otp, /api/auth/reset-password
 app.use("/api", imageRoutes);         // /api/upload-pictures, /api/upload-profile-pic, etc.
 app.use("/api", notifyRoutes);        // /api/notify (push on like / match / message)
+app.use("/api/account", accountRoutes); // /api/account/delete-account
 
 // Health check
 app.get("/", (req, res) => res.send("Rishtay Bandhan API running"));
