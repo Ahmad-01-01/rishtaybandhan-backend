@@ -7,15 +7,54 @@ const { detectFaceByBuffer } = require("../utils/faceDetector");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// ─── Helper: identify an image from its magic bytes ──────────────────────────
+// Returns null rather than guessing, so an unrecognised buffer is never
+// mislabelled (a PNG stored as image/jpeg would break some clients).
+function sniffImageType(buf) {
+  if (!buf || buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  if (buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+    return "image/png";
+  if (buf.slice(0, 4).toString() === "RIFF" && buf.slice(8, 12).toString() === "WEBP")
+    return "image/webp";
+  if (buf.slice(4, 8).toString() === "ftyp") return "image/heic";
+  const g = buf.slice(0, 6).toString();
+  if (g === "GIF87a" || g === "GIF89a") return "image/gif";
+  return null;
+}
+
 // ─── Helper: upload file to GCS and return signed URL ────────────────────────
 async function uploadAndSign(uid, file, label) {
-  const name = `${uid}_${label}.jpg`;
+  // Unique per upload, and this is load-bearing for the cacheControl below.
+  // The old scheme was `${uid}_${label}.jpg`, so replacing gallery photo 0
+  // overwrote the same object and produced an identical signed URL. Combined
+  // with a one-year immutable cache that would pin the OLD photo on every
+  // device that had already seen it. A fresh path means a fresh URL, so a
+  // replaced photo is picked up immediately and the cache never lies.
+  //
+  // The superseded object is left behind rather than deleted here: it may still
+  // be referenced by a Firestore document that has not been updated yet, and
+  // /delete-user-images/:uid removes the whole `user_images/${uid}/` prefix when
+  // an account is deleted, so nothing is orphaned permanently.
+  const name = `${uid}_${label}_${Date.now()}.jpg`;
   const gcsPath = `user_images/${uid}/${name}`;
   const fileRef = bucket.file(gcsPath);
 
+  // Sniff the real format instead of trusting file.mimetype. The Flutter client
+  // sends multipart parts without a content type, so mimetype arrives as
+  // application/octet-stream and 708 objects in the bucket were stored with
+  // that, which blocks sane caching downstream.
+  const sniffed = sniffImageType(file.buffer) || file.mimetype || "image/jpeg";
+
   await fileRef.save(file.buffer, {
     resumable: false,
-    contentType: file.mimetype,
+    contentType: sniffed,
+    // A photo at this path is never rewritten (a new upload gets a new label),
+    // so it can be cached hard. Without an explicit cacheControl, GCS serves
+    // signed-URL reads as `private, max-age=0`, which told every client the
+    // image was stale on arrival and defeated the on-device image cache: each
+    // appearance of a card refetched the full photo.
+    cacheControl: "public, max-age=31536000, immutable",
     metadata: { firebaseStorageDownloadTokens: uuidv4() },
   });
 
